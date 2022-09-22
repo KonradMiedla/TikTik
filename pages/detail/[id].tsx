@@ -10,6 +10,9 @@ import { HiVolumeUp, HiVolumeOff } from 'react-icons/hi';
 import axios from 'axios';
 import { BASE_URL } from '../../utils';
 import { Video } from '../../types';
+import useAuthStore from '../../store/authStore';
+import LikeButton from '../../components/LikeButton';
+import Comments from '../../components/Comments';
 
 interface IProps {
   postDetails: Video,
@@ -17,10 +20,11 @@ interface IProps {
 
 const Detail = ({ postDetails }: IProps) => {
   const [post, setPost] = useState(postDetails);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isVideoMuted, setIsVideoMuted] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
+  const { userProfile }: any = useAuthStore();
 
   const onVideoClick = () => {
     if(isPlaying) {
@@ -38,8 +42,17 @@ const Detail = ({ postDetails }: IProps) => {
     }
   }, [post, isVideoMuted])
 
+  const handleLike = async (like: boolean) => {
+    if(userProfile) {
+      const { data } = await axios.put(`${BASE_URL}/api/like`, {
+        userId: userProfile._id,
+        postId: post._id,
+        like
+      })
 
-  if(!post) return null;
+      setPost({ ...post, likes: data.likes});
+    }
+  }
 
   return (
     <div className='flex w-full absolute left-0 top-0 bg-white flex-wrap lg:flex-nowrap'>
@@ -84,8 +97,54 @@ const Detail = ({ postDetails }: IProps) => {
             </button>
           )}
         </div>
-
       </div>
+
+      <div className='relative w-[1000px] md:w-[900px] lg-w[700px]'>
+        <div className='lg:mt-20 mt-10'>
+          <div className='ml-4 md:w-20 md:h-20 w-16 h-16'>
+            <Link href='/'>
+              <>
+                <Image 
+                  width={62}
+                  height={62}
+                  className="rounded-full"
+                  src={post.postedBy.image}
+                  alt='profile phoot'
+                  layout="responsive"
+                ></Image>
+              </>
+            </Link>
+          </div>
+          <div>
+            <Link href='/'>
+              <div className='mt-3 flex flex-col items-center gap-2'>
+                <p className='flex gap-2 md:text-md font-blac text-primary'>
+                  {post.postedBy.userName} {` `}
+                  <GoVerified className='text-blue-400 text-md'></GoVerified>
+                </p>
+                <p className='capitalize font-medium text-xs text-gray-500 hidden md:block'>
+                  {post.postedBy.userName}
+                </p>
+              </div>
+              </Link>
+          </div>
+        </div>
+
+        <p className='px-10 text-lg text-gray-600'>
+          {post.caption}
+        </p>
+
+        <div className='mt-10 px-10'>
+          {userProfile && <LikeButton
+              likes={post.likes}
+              handleLike={() => handleLike(true)}
+              handleDislike={() => handleLike(false)}
+            ></LikeButton>
+          }
+        </div>
+        <Comments></Comments>
+      </div>
+
     </div>
   )
 }
